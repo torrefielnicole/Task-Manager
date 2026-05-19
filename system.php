@@ -421,7 +421,7 @@ body::after {
         <a href="system.php" class="nav-link active">
             <span class="nav-icon icon-gray">⚙️</span> System Info
         </a>
-        <a href="#" class="nav-link">
+        <a href="developer.php" class="nav-link">
             <span class="nav-icon icon-gray">👨‍💻</span> Developer
         </a>
     </nav>

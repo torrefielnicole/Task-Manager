@@ -1,19 +1,33 @@
 <?php
 include 'db.php';
 
+$error = "";
+
 if (isset($_POST['register'])) {
-    $username = $_POST['username'];
+    $username = trim($_POST['username']);
     $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    // Using Prepared Statement for Security
-    $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-    $stmt->bind_param("ss", $username, $password);
+    // STEP 1: CHECK IF USERNAME EXISTS
+    $check = $conn->prepare("SELECT id FROM users WHERE username = ?");
+    $check->bind_param("s", $username);
+    $check->execute();
+    $check->store_result();
 
-    if ($stmt->execute()) {
-        header("Location: login.php");
-        exit();
+    if ($check->num_rows > 0) {
+        // Username already exists
+        $error = "This username already exists!";
     } else {
-        $error = "Username already taken!";
+
+        // STEP 2: INSERT NEW USER
+        $stmt = $conn->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
+        $stmt->bind_param("ss", $username, $password);
+
+        if ($stmt->execute()) {
+            header("Location: login.php");
+            exit();
+        } else {
+            $error = "Something went wrong. Try again.";
+        }
     }
 }
 ?>
@@ -22,24 +36,25 @@ if (isset($_POST['register'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Join the Study Room</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <style>
-        /* 🎨 GHIBLI REGISTRATION AESTHETIC */
         @import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Patrick+Hand&display=swap');
 
         body {
             margin: 0;
             font-family: 'Kosugi Maru', serif;
             color: #4a3e2e;
-            background-color: #000;
+            background-color: #f4ede4;
             height: 100vh;
             display: flex;
             align-items: center;
             overflow: hidden;
         }
 
-        /* 🎬 VIDEO BACKGROUND SETUP */
         #bgVideo {
             position: fixed;
             right: 0;
@@ -48,70 +63,26 @@ if (isset($_POST['register'])) {
             min-height: 100%;
             z-index: -1;
             object-fit: cover;
-            filter: brightness(0.7);
+            filter: brightness(0.6);
         }
 
         .card {
             background: rgba(255, 255, 255, 0.7) !important;
             border: 1px solid rgba(255, 255, 255, 0.3) !important;
             border-radius: 20px;
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(12px);
-            position: relative;
-            z-index: 1;
         }
 
         h3 {
             font-family: 'Patrick Hand', cursive;
             color: #6f5841;
             font-size: 2.2rem;
-            margin-bottom: 10px;
-        }
-
-        .form-control {
-            background: rgba(255, 255, 255, 0.8);
-            border: 1px solid #dcd0b8;
-            border-radius: 12px;
-            padding: 12px;
-            color: #4a3e2e;
-        }
-
-        .btn-primary {
-            background: #6f5841;
-            border: none;
-            border-radius: 25px;
-            padding: 12px;
-            font-family: 'Patrick Hand', cursive;
-            font-size: 1.3rem;
-            transition: transform 0.2s, background 0.3s;
-        }
-
-        .btn-primary:hover {
-            background: #5d4a36;
-            transform: scale(1.02);
-        }
-
-        .music-btn {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            z-index: 100;
-            background: #6f5841;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
         }
 
         .error-text {
             font-family: 'Patrick Hand', cursive;
             color: #dc3545;
-            background: rgba(255, 255, 255, 0.5);
-            padding: 5px;
-            border-radius: 8px;
         }
     </style>
 </head>
@@ -121,59 +92,48 @@ if (isset($_POST['register'])) {
     <source src="assets/video/ghibli-study.mp4" type="video/mp4">
 </video>
 
-<audio id="studyMusic" loop>
-    <source src="assets/music/ghibli_lofi.mp3" type="audio/mpeg">
-</audio>
-<button onclick="toggleMusic()" class="music-btn" id="musicBtn">🎵</button>
-
 <div class="container">
     <div class="row justify-content-center">
-        <div class="col-md-5">
+        <div class="col-md-4">
+
             <div class="card p-4">
-                <div class="text-center mb-4">
+
+                <div class="text-center mb-3">
                     <h3>🌿 New Student</h3>
-                    <p style="font-size: 0.9rem; color: #5d4a36;">Sign up to join the Study Room</p>
+                    <p style="font-size: 0.9rem; color: #5d4a36;">
+                        Sign up to join the Study Room
+                    </p>
                 </div>
 
-                <?php if (!empty($error)) echo "<p class='error-text text-center'>$error</p>"; ?>
+                <?php if (!empty($error)): ?>
+                    <p class="text-center error-text">
+                        <?= $error ?>
+                    </p>
+                <?php endif; ?>
 
                 <form method="POST">
                     <div class="mb-3">
-                        <label class="form-label small" style="color: #6f5841;">Choose Username</label>
-                        <input type="text" name="username" class="form-control" placeholder="e.g. TotoroStudy" required autocomplete="off">
+                        <input type="text" name="username" class="form-control" placeholder="Choose Username" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small" style="color: #6f5841;">Choose Password</label>
-                        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                        <input type="password" name="password" class="form-control" placeholder="Choose Password" required>
                     </div>
 
-                    <button type="submit" name="register" class="btn btn-primary w-100 mt-2">Create Account</button>
+                    <button type="submit" name="register" class="btn btn-primary w-100">
+                        Create Account
+                    </button>
                 </form>
 
-                <p class="text-center mt-4" style="font-size: 0.95rem;">
-                    Already studying? <a href="login.php" style="color: #6d9dc5; font-weight: bold; text-decoration: none;">Log in here</a>
+                <p class="text-center mt-4">
+                    Already studying? <a href="login.php">Log in here</a>
                 </p>
+
             </div>
+
         </div>
     </div>
 </div>
-
-<script>
-    const music = document.getElementById("studyMusic");
-    const btn = document.getElementById("musicBtn");
-    music.volume = 0.3;
-
-    function toggleMusic() {
-        if (music.paused) {
-            music.play();
-            btn.innerHTML = "⏸️";
-        } else {
-            music.pause();
-            btn.innerHTML = "🎵";
-        }
-    }
-</script>
 
 </body>
 </html>

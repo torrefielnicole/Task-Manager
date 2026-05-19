@@ -10,6 +10,7 @@ if (!isset($_SESSION['user'])) {
 }
 
 $category = $_GET['category'] ?? '';
+$filter = $_GET['filter'] ?? 'all';
 
 // TOTAL
 if ($category != '') {
@@ -62,8 +63,17 @@ $acadDone   = count(array_filter($academicTasks, fn($t) => $t['status'] === 'com
 $persDone   = count(array_filter($personalTasks, fn($t) => $t['status'] === 'completed'));
 $projDone   = count(array_filter($projectTasks,  fn($t) => $t['status'] === 'completed'));
 
-// ALL TASKS for attention table
-$stmt = $conn->prepare("SELECT * FROM task WHERE status='pending' ORDER BY due_date ASC LIMIT 20");
+// FILTERED TASKS FOR ATTENTION TABLE
+if ($filter === 'pending') {
+    $stmt = $conn->prepare("SELECT * FROM task WHERE status='pending' ORDER BY due_date ASC LIMIT 20");
+} elseif ($filter === 'completed') {
+    $stmt = $conn->prepare("SELECT * FROM task WHERE status='completed' ORDER BY due_date ASC LIMIT 20");
+} elseif ($filter === 'overdue') {
+    $stmt = $conn->prepare("SELECT * FROM task WHERE status='pending' AND due_date < CURDATE() AND due_date != '0000-00-00' ORDER BY due_date ASC LIMIT 20");
+} else {
+    $stmt = $conn->prepare("SELECT * FROM task ORDER BY due_date ASC LIMIT 20");
+}
+
 $stmt->execute();
 $attentionTasks = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
@@ -231,7 +241,6 @@ body::before {
 .pcard-green  .pcard-icon-wrap { background:rgba(0,229,160,0.2); }
 .pcard-red    .pcard-icon-wrap { background:rgba(255,82,82,0.2); }
 
-/* view detail link */
 .pcard-detail { font-size:10px;font-weight:700;color:rgba(255,255,255,0.45);text-decoration:none;letter-spacing:0.05em;margin-top:10px;display:inline-flex;align-items:center;gap:4px;transition:color 0.15s; }
 .pcard-detail:hover { color:#fff; }
 
@@ -278,6 +287,40 @@ body::before {
 .panel-title { font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#fff; }
 .panel-badge { font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(255,82,82,0.15);color:#ff8a80;border:1px solid rgba(255,82,82,0.3); }
 .panel-badge.ok { background:rgba(0,229,160,0.12);color:var(--done);border-color:rgba(0,229,160,0.28); }
+
+/* ── SEARCH & DELETE ALL BAR ── */
+.table-toolbar {
+    display:flex;align-items:center;gap:10px;
+    padding:12px 18px;border-bottom:1px solid var(--border);
+    background:rgba(255,255,255,0.02);
+}
+.search-wrap {
+    display:flex;align-items:center;gap:8px;flex:1;
+    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
+    border-radius:10px;padding:7px 12px;transition:border-color 0.2s;
+}
+.search-wrap:focus-within { border-color:rgba(79,195,247,0.5); }
+.search-wrap svg { flex-shrink:0;opacity:0.45; }
+.search-input {
+    background:none;border:none;outline:none;
+    color:#fff;font-size:13px;font-family:'Outfit',sans-serif;width:100%;
+}
+.search-input::placeholder { color:rgba(255,255,255,0.3); }
+.search-count { font-size:11px;font-weight:700;color:var(--text2);white-space:nowrap;padding:0 4px; }
+.btn-delete-all {
+    display:inline-flex;align-items:center;gap:6px;
+    padding:7px 14px;border-radius:8px;
+    background:rgba(255,82,82,0.1);border:1px solid rgba(255,82,82,0.25);
+    color:#ff8a80;font-size:12px;font-weight:700;
+    font-family:'Outfit',sans-serif;cursor:pointer;
+    transition:background 0.15s,border-color 0.15s,transform 0.12s;white-space:nowrap;
+}
+.btn-delete-all:hover {
+    background:rgba(255,82,82,0.22);border-color:rgba(255,82,82,0.5);
+    color:#ff5252;transform:translateY(-1px);
+}
+.btn-delete-all:disabled { opacity:0.35;cursor:not-allowed;transform:none; }
+.modal-danger { border-color:rgba(255,82,82,0.3) !important; }
 
 .attn-table { width:100%;border-collapse:collapse; }
 .attn-table th { font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text2);padding:10px 18px 8px;text-align:left;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border); }
@@ -425,7 +468,7 @@ body::before {
                 <div class="pcard-label">Total Tasks</div>
                 <div class="pcard-num" data-target="<?= $total ?>"><?= $total ?></div>
                 <div class="pcard-sub">All categories</div>
-                <a href="index.php" class="pcard-detail">View All →</a>
+                <a href="index.php?filter=all" class="pcard-detail">View All →</a>
             </div>
             <div class="pcard-icon-wrap">📋</div>
         </div>
@@ -435,7 +478,7 @@ body::before {
                 <div class="pcard-label">Pending</div>
                 <div class="pcard-num" data-target="<?= $pending ?>"><?= $pending ?></div>
                 <div class="pcard-sub">Need attention</div>
-                <a href="index.php" class="pcard-detail">View All →</a>
+                <a href="index.php?filter=pending" class="pcard-detail">View All →</a>
             </div>
             <div class="pcard-icon-wrap">⏳</div>
         </div>
@@ -445,7 +488,7 @@ body::before {
                 <div class="pcard-label">Completed</div>
                 <div class="pcard-num" data-target="<?= $completed ?>"><?= $completed ?></div>
                 <div class="pcard-sub"><?= $progressPercent ?>% of total</div>
-                <a href="index.php" class="pcard-detail">View All →</a>
+                <a href="index.php?filter=completed" class="pcard-detail">View All →</a>
             </div>
             <div class="pcard-icon-wrap">✅</div>
         </div>
@@ -455,7 +498,7 @@ body::before {
                 <div class="pcard-label">Overdue</div>
                 <div class="pcard-num" data-target="<?= $overdueCount ?>"><?= $overdueCount ?></div>
                 <div class="pcard-sub">Past due date</div>
-                <a href="index.php" class="pcard-detail">View All →</a>
+                <a href="index.php?filter=overdue" class="pcard-detail">View All →</a>
             </div>
             <div class="pcard-icon-wrap">⚠️</div>
         </div>
@@ -560,7 +603,13 @@ body::before {
         <!-- ITEMS REQUIRING ATTENTION TABLE -->
         <div class="panel">
             <div class="panel-header">
-                <span class="panel-title">⚠️ Items Requiring Attention</span>
+                <?php
+                $panelTitle = "📋 All Tasks";
+                if ($filter === 'pending')        $panelTitle = "⏳ Pending Tasks";
+                elseif ($filter === 'completed')  $panelTitle = "✅ Completed Tasks";
+                elseif ($filter === 'overdue')    $panelTitle = "⚠️ Overdue Tasks";
+                ?>
+                <span class="panel-title"><?= $panelTitle ?></span>
                 <?php if($overdueCount > 0): ?>
                     <span class="panel-badge"><?= $overdueCount ?> overdue</span>
                 <?php else: ?>
@@ -568,8 +617,23 @@ body::before {
                 <?php endif; ?>
             </div>
 
+            <!-- TOOLBAR: Search + Delete All -->
+            <div class="table-toolbar">
+                <div class="search-wrap">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <input type="text" class="search-input" id="tableSearch" placeholder="Search tasks..." oninput="filterTable()">
+                </div>
+                <span class="search-count" id="searchCount"><?= count($attentionTasks) ?> tasks</span>
+                <button class="btn-delete-all" id="deleteAllBtn"
+                    onclick="confirmDeleteAll()"
+                    <?= count($attentionTasks) === 0 ? 'disabled' : '' ?>>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    Delete All
+                </button>
+            </div>
+
             <?php if (count($attentionTasks) > 0): ?>
-            <table class="attn-table">
+            <table class="attn-table" id="attnTable">
                 <thead>
                     <tr>
                         <th>Task</th>
@@ -579,7 +643,7 @@ body::before {
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="attnBody">
                 <?php foreach ($attentionTasks as $row):
                     $tid = intval($row['task_id'] ?? $row['id'] ?? 0);
                     $tsafe = addslashes($row['task_name'] ?? '');
@@ -591,7 +655,7 @@ body::before {
                     $priLabel = $pri === 3 ? '🔴 High' : ($pri === 2 ? '🟡 Med' : '🟢 Low');
                     $cat = $row['category'] ?? 'default';
                 ?>
-                <tr>
+                <tr data-name="<?= strtolower(htmlspecialchars($row['task_name'])) ?>">
                     <td><div class="attn-name" title="<?= htmlspecialchars($row['task_name']) ?>"><?= htmlspecialchars($row['task_name']) ?></div></td>
                     <td><span class="attn-cat cat-<?= $cat ?>"><?= ucfirst($cat) ?></span></td>
                     <td><span class="attn-due <?= $dueClass ?>"><?= $dueLabel ?></span></td>
@@ -607,7 +671,7 @@ body::before {
                 </tbody>
             </table>
             <?php else: ?>
-                <div class="no-attn"><span>🎉</span>No pending tasks! All clear.</div>
+                <div class="no-attn"><span>🎉</span>No tasks here! All clear.</div>
             <?php endif; ?>
         </div>
 
@@ -702,7 +766,7 @@ body::before {
 
 </main>
 
-<!-- DELETE MODAL -->
+<!-- DELETE SINGLE MODAL -->
 <div class="modal-overlay" id="deleteModal">
     <div class="modal-box">
         <div class="modal-icon">🗑️</div>
@@ -715,8 +779,21 @@ body::before {
     </div>
 </div>
 
+<!-- DELETE ALL MODAL -->
+<div class="modal-overlay" id="deleteAllModal">
+    <div class="modal-box modal-danger">
+        <div class="modal-icon">⚠️</div>
+        <div class="modal-title">Delete All Shown?</div>
+        <div class="modal-sub" id="deleteAllSub">This will permanently delete all tasks currently shown.</div>
+        <div class="modal-btns">
+            <button class="modal-btn modal-cancel" onclick="closeAllModal()">Cancel</button>
+            <a class="modal-btn modal-confirm" id="deleteAllConfirmBtn" href="#">Delete All</a>
+        </div>
+    </div>
+</div>
+
 <script>
-/* ── MODAL ── */
+/* ── MODAL (single) ── */
 function confirmDelete(id, name) {
     document.getElementById('modalTaskName').textContent = 'Delete "' + name + '"? This cannot be undone.';
     document.getElementById('modalConfirmBtn').href = 'delete.php?id=' + id;
@@ -724,6 +801,40 @@ function confirmDelete(id, name) {
 }
 function closeModal() { document.getElementById('deleteModal').classList.remove('show'); }
 document.getElementById('deleteModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+
+/* ── MODAL (delete all) ── */
+function confirmDeleteAll() {
+    const visibleRows = [...document.querySelectorAll('#attnBody tr')].filter(r => r.style.display !== 'none');
+    const count = visibleRows.length;
+    if (count === 0) return;
+    const ids = visibleRows.map(r => {
+        const delBtn = r.querySelector('.kbtn-del');
+        if (!delBtn) return null;
+        const match = delBtn.getAttribute('onclick').match(/confirmDelete\((\d+)/);
+        return match ? match[1] : null;
+    }).filter(Boolean);
+    document.getElementById('deleteAllSub').textContent =
+        'This will permanently delete ' + count + ' task' + (count !== 1 ? 's' : '') + '. This cannot be undone.';
+    document.getElementById('deleteAllConfirmBtn').href = 'delete_all.php?ids=' + ids.join(',') + '&redirect=index.php?filter=<?= $filter ?>';
+    document.getElementById('deleteAllModal').classList.add('show');
+}
+function closeAllModal() { document.getElementById('deleteAllModal').classList.remove('show'); }
+document.getElementById('deleteAllModal').addEventListener('click', function(e) { if(e.target===this) closeAllModal(); });
+
+/* ── SEARCH ── */
+function filterTable() {
+    const q = document.getElementById('tableSearch').value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#attnBody tr');
+    let visible = 0;
+    rows.forEach(row => {
+        const name = row.dataset.name || '';
+        const show = name.includes(q);
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+    document.getElementById('searchCount').textContent = visible + ' task' + (visible !== 1 ? 's' : '');
+    document.getElementById('deleteAllBtn').disabled = visible === 0;
+}
 
 /* ── CURSOR GLOW ── */
 const glow = document.getElementById('cursorGlow');
@@ -779,17 +890,12 @@ function drawDonut(id, pct, color, trackColor) {
     const cx = 40, cy = 40, r = 32, lw = 8;
     const start = -Math.PI / 2;
     const end = start + (Math.PI * 2 * (pct / 100));
-
     ctx.clearRect(0, 0, 80, 80);
-
-    // track
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.strokeStyle = trackColor || 'rgba(255,255,255,0.08)';
     ctx.lineWidth = lw;
     ctx.stroke();
-
-    // fill
     if (pct > 0) {
         ctx.beginPath();
         ctx.arc(cx, cy, r, start, end);
