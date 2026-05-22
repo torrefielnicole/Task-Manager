@@ -9,14 +9,47 @@ if (!isset($_SESSION['user'])) {
     exit();
 }
 
-$user = $_SESSION['user'];
+$user  = $_SESSION['user'];
 $today = date('Y-m-d');
 
-// ── HANDLE ACTIONS ──
+// ── HANDLE TASK ACTIONS ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    // Add habit
+    if ($action === 'add_task') {
+        $name     = trim($_POST['task_name'] ?? '');
+        $due      = $_POST['due_date'] ?? '';
+        $category = 'personal';
+        $status   = 'pending';
+        if ($name !== '') {
+            $stmt = $conn->prepare("INSERT INTO task (task_name, due_date, category, status) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssss", $name, $due, $category, $status);
+            $stmt->execute();
+        }
+    }
+
+    if ($action === 'edit_task') {
+        $id   = intval($_POST['id'] ?? 0);
+        $name = trim($_POST['task_name'] ?? '');
+        $due  = $_POST['due_date'] ?? '';
+        $stat = $_POST['status'] ?? 'pending';
+        if ($id && $name !== '') {
+            $stmt = $conn->prepare("UPDATE task SET task_name=?, due_date=?, status=? WHERE id=? AND category='personal'");
+            $stmt->bind_param("sssi", $name, $due, $stat, $id);
+            $stmt->execute();
+        }
+    }
+
+    if ($action === 'delete_task') {
+        $id = intval($_POST['id'] ?? 0);
+        if ($id) {
+            $stmt = $conn->prepare("DELETE FROM task WHERE id=? AND category='personal'");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+        }
+    }
+
+    // Habit actions
     if ($action === 'add') {
         $name = trim($_POST['name'] ?? '');
         if ($name !== '') {
@@ -25,33 +58,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute();
         }
     }
-
-    // Delete habit
     if ($action === 'delete') {
         $id = intval($_POST['id'] ?? 0);
         $stmt = $conn->prepare("DELETE FROM habits WHERE id = ? AND user = ?");
         $stmt->bind_param("is", $id, $user);
         $stmt->execute();
     }
-
-    // Toggle done
     if ($action === 'toggle') {
         $id = intval($_POST['id'] ?? 0);
         $stmt = $conn->prepare("SELECT done_today, last_done, streak FROM habits WHERE id = ? AND user = ?");
         $stmt->bind_param("is", $id, $user);
         $stmt->execute();
         $row = $stmt->get_result()->fetch_assoc();
-
         if ($row) {
             $wasDoneToday = $row['last_done'] === $today;
             if ($wasDoneToday) {
-                // Untoggle
                 $yesterday = date('Y-m-d', strtotime('-1 day'));
                 $newStreak = max(0, $row['streak'] - 1);
                 $stmt = $conn->prepare("UPDATE habits SET done_today=0, last_done=?, streak=? WHERE id=? AND user=?");
                 $stmt->bind_param("siis", $yesterday, $newStreak, $id, $user);
             } else {
-                // Mark done, increment streak
                 $newStreak = $row['streak'] + 1;
                 $stmt = $conn->prepare("UPDATE habits SET done_today=1, last_done=?, streak=? WHERE id=? AND user=?");
                 $stmt->bind_param("siis", $today, $newStreak, $id, $user);
@@ -69,11 +95,7 @@ $stmt = $conn->prepare("SELECT * FROM habits WHERE user = ? ORDER BY created_at 
 $stmt->bind_param("s", $user);
 $stmt->execute();
 $habits = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
-// Mark done_today based on last_done
-foreach ($habits as &$h) {
-    $h['done_today'] = ($h['last_done'] === $today);
-}
+foreach ($habits as &$h) { $h['done_today'] = ($h['last_done'] === $today); }
 unset($h);
 
 // ── FETCH TASKS ──
@@ -113,7 +135,6 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
 #particleCanvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.45;}
 .cursor-glow{position:fixed;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(167,139,250,0.08) 0%,transparent 70%);pointer-events:none;z-index:1;transform:translate(-50%,-50%);}
 
-/* SIDEBAR */
 .sidebar{position:fixed;left:0;top:0;width:var(--sidebar-w);height:100vh;background:rgba(10,15,65,0.93);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;backdrop-filter:blur(20px);}
 .sidebar-brand{padding:26px 22px 20px;border-bottom:1px solid var(--border);}
 .brand-logo{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
@@ -134,7 +155,6 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
 .sidebar-footer{margin-top:auto;padding:16px 22px 24px;border-top:1px solid var(--border);}
 .nav-link.logout{color:rgba(255,100,100,.65)!important}.nav-link.logout:hover{color:rgba(255,100,100,.9)!important;background:rgba(255,60,60,.07)!important}
 
-/* MAIN */
 .main{margin-left:var(--sidebar-w);flex:1;padding:32px 36px;position:relative;z-index:2;min-height:100vh;}
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;animation:slideUp .5s ease both;}
 .topbar-left h1{font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;}
@@ -145,7 +165,6 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
 .section-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .section-label::after{content:'';flex:1;height:1px;background:var(--border);}
 
-/* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;animation:slideUp .5s ease .1s both;}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 18px;backdrop-filter:blur(10px);position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;}
 .stat-card:hover{transform:translateY(-5px) scale(1.02);}
@@ -159,10 +178,9 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
 .stat-card:hover .stat-icon{transform:scale(1.2) rotate(-8deg);}
 .si-purple{background:rgba(167,139,250,.15)}.si-yellow{background:rgba(255,184,48,.15)}.si-green{background:rgba(0,229,160,.15)}.si-pink{background:rgba(244,114,182,.15)}
 .stat-label{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--text2);margin-bottom:4px;}
-.stat-num{font-family:'Nunito',sans-serif;font-size:32px;font-weight:900;line-height:1;color:#fff;}
+.stat-num{font-family:'Nunito',sans-serif;font-size:32px;font-weight:900;line-height:1;}
 .stat-num.c-purple{color:var(--purple)}.stat-num.c-yellow{color:var(--warn)}.stat-num.c-green{color:var(--done)}.stat-num.c-pink{color:#f472b6}
 
-/* PROGRESS */
 .progress-band{background:linear-gradient(135deg,rgba(167,139,250,.1),rgba(244,114,182,.08));border:1px solid rgba(167,139,250,.2);border-radius:var(--radius);padding:18px 24px;display:flex;align-items:center;gap:24px;margin-bottom:22px;animation:slideUp .5s ease .15s both;}
 .pb-info{flex:1}.pb-label{font-size:13px;font-weight:700;color:#fff;margin-bottom:8px;}
 .pb-track{height:12px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;}
@@ -171,13 +189,15 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
 .pb-sub{font-size:11px;color:var(--text2);margin-top:6px;}
 .pb-pct{font-family:'Nunito',sans-serif;font-size:44px;font-weight:900;color:#fff;text-shadow:0 0 24px rgba(167,139,250,.5);white-space:nowrap;}
 
-/* THREE COL */
-.three-col{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:18px;margin-bottom:22px;animation:slideUp .5s ease .2s both;}
+.add-task-btn{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#a78bfa,#f472b6);border:none;border-radius:50px;padding:10px 22px;font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;color:#fff;cursor:pointer;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 18px rgba(167,139,250,.3);}
+.add-task-btn:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 8px 28px rgba(167,139,250,.45);}
 
-/* TASK LIST */
+.three-col{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:18px;margin-bottom:22px;animation:slideUp .5s ease .2s both;}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;backdrop-filter:blur(10px);}
 .panel-title{font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;color:#fff;margin-bottom:14px;}
-.task-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.04);margin-bottom:8px;position:relative;overflow:hidden;transition:transform .18s,background .18s;cursor:pointer;}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+
+.task-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;border:1px solid rgba(255,255,255,.07);background:rgba(255,255,255,.04);margin-bottom:8px;position:relative;overflow:hidden;transition:transform .18s,background .18s;cursor:pointer;}
 .task-item:hover{transform:translateX(4px);background:rgba(255,255,255,.08);}
 .task-item:last-child{margin-bottom:0;}
 .task-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -186,8 +206,15 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
 .task-name{font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .task-name.striked{text-decoration:line-through;color:var(--text2);}
 .task-due{font-size:11px;color:var(--text2);margin-top:2px;}
+.task-actions{display:flex;gap:5px;flex-shrink:0;}
 .task-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap;}
 .badge-pending{background:rgba(255,184,48,.15);color:var(--warn)}.badge-done{background:rgba(0,229,160,.15);color:var(--done)}
+.icon-btn{width:26px;height:26px;border-radius:7px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:background .15s,transform .15s;}
+.icon-btn:hover{transform:scale(1.15);}
+.btn-edit{background:rgba(167,139,250,.15);color:var(--purple);}
+.btn-edit:hover{background:rgba(167,139,250,.3);}
+.btn-del{background:rgba(255,82,82,.12);color:var(--danger);}
+.btn-del:hover{background:rgba(255,82,82,.28);}
 .empty-state{text-align:center;padding:24px 0;color:var(--text2);font-size:13px;}
 .empty-state span{font-size:28px;display:block;margin-bottom:8px;opacity:.4;}
 
@@ -202,9 +229,8 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
 .habit-input::placeholder{color:var(--text2);}
 .habit-submit{background:linear-gradient(135deg,#a78bfa,#7c6ef7);border:none;border-radius:10px;padding:9px;color:#fff;font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;transition:opacity .15s;}
 .habit-submit:hover{opacity:.85;}
-.habit-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);transition:background .15s;}
+.habit-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);}
 .habit-item:last-child{border-bottom:none;}
-.habit-item:hover{background:rgba(255,255,255,.03);border-radius:8px;padding-left:6px;}
 .habit-check{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;cursor:pointer;transition:transform .2s,background .2s,border-color .2s;}
 .habit-check.done{background:rgba(0,229,160,.15);border-color:var(--done);color:var(--done);}
 .habit-check:hover{transform:scale(1.15);}
@@ -229,33 +255,42 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
 .quote-text{font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;color:#fff;line-height:1.5;margin-bottom:8px;}
 .quote-author{font-size:12px;color:var(--text2);}
 
-/* DELETE MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(5,10,40,.75);backdrop-filter:blur(6px);z-index:999;align-items:center;justify-content:center;}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(5,10,40,.8);backdrop-filter:blur(8px);z-index:999;align-items:center;justify-content:center;}
 .modal-overlay.show{display:flex;}
-.modal-box{background:#1a2070;border:1px solid rgba(167,139,250,.25);border-radius:20px;padding:32px 28px;width:340px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.5);animation:popIn .2s cubic-bezier(.34,1.56,.64,1);}
+.modal-box{background:#14105c;border:1px solid rgba(167,139,250,.2);border-radius:22px;padding:32px 28px;width:420px;box-shadow:0 28px 70px rgba(0,0,0,.6);animation:popIn .22s cubic-bezier(.34,1.56,.64,1);}
 @keyframes popIn{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}
-.modal-icon{font-size:40px;margin-bottom:12px;}
-.modal-title{font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;color:#fff;margin-bottom:6px;}
-.modal-sub{font-size:12px;color:var(--text2);margin-bottom:22px;}
-.modal-btns{display:flex;gap:10px;justify-content:center;}
-.modal-btn{padding:9px 24px;border-radius:50px;font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;border:none;transition:transform .12s;}
+.modal-icon{font-size:36px;margin-bottom:10px;text-align:center;}
+.modal-title{font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;color:#fff;margin-bottom:18px;text-align:center;}
+.modal-field{margin-bottom:14px;}
+.modal-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text2);margin-bottom:6px;display:block;}
+.modal-input,.modal-select{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(167,139,250,.2);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;font-family:'Outfit',sans-serif;outline:none;transition:border-color .2s;}
+.modal-input:focus,.modal-select:focus{border-color:var(--purple);}
+.modal-input::placeholder{color:var(--text2);}
+.modal-select option{background:#14105c;color:#fff;}
+.modal-btns{display:flex;gap:10px;margin-top:22px;}
+.modal-btn{flex:1;padding:11px;border-radius:50px;font-size:13px;font-weight:700;font-family:'Outfit',sans-serif;cursor:pointer;border:none;transition:transform .12s;}
 .modal-btn:hover{transform:translateY(-1px);}
 .modal-cancel{background:rgba(255,255,255,.1);color:var(--text2);border:1px solid var(--border)!important;}
-.modal-confirm{background:linear-gradient(135deg,#ff5252,#c62828);color:#fff;}
+.modal-confirm-add{background:linear-gradient(135deg,#a78bfa,#f472b6);color:#fff;}
+.modal-confirm-edit{background:linear-gradient(135deg,#7c6ef7,#a78bfa);color:#fff;}
+.modal-confirm-del{background:linear-gradient(135deg,#ff5252,#c62828);color:#fff;}
+.modal-del-sub{text-align:center;color:var(--text2);font-size:13px;margin-bottom:4px;}
+
+/* HABIT DELETE MODAL */
+.hmodal-overlay{display:none;position:fixed;inset:0;background:rgba(5,10,40,.75);backdrop-filter:blur(6px);z-index:999;align-items:center;justify-content:center;}
+.hmodal-overlay.show{display:flex;}
+.hmodal-box{background:#14105c;border:1px solid rgba(167,139,250,.25);border-radius:20px;padding:32px 28px;width:340px;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.5);animation:popIn .2s cubic-bezier(.34,1.56,.64,1);}
 
 @keyframes slideUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:99px}
 </style>
 </head>
 <body>
-
-<div class="orb orb1"></div>
-<div class="orb orb2"></div>
-<div class="orb orb3"></div>
+<div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
 <canvas id="particleCanvas"></canvas>
 <div class="cursor-glow" id="cursorGlow"></div>
 
-<!-- SIDEBAR -->
 <aside class="sidebar">
     <div class="sidebar-brand">
         <div class="brand-logo"><div class="brand-icon">📋</div><span class="brand-name">To-Do List</span></div>
@@ -273,7 +308,7 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
     </nav>
     <nav class="nav-section">
         <div class="nav-label">More</div>
-        <a href="system.php"    class="nav-link"><span class="nav-icon icon-gray">⚙️</span> System Info</a>
+        <a href="system.php" class="nav-link"><span class="nav-icon icon-gray">⚙️</span> System Info</a>
         <a href="developer.php" class="nav-link"><span class="nav-icon icon-gray">👨‍💻</span> Developer</a>
     </nav>
     <div class="sidebar-footer">
@@ -281,9 +316,7 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
     </div>
 </aside>
 
-<!-- MAIN -->
 <main class="main">
-
     <div class="topbar">
         <div class="topbar-left">
             <h1>🎨 Personal</h1>
@@ -292,32 +325,14 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
         <div class="pers-chip"><span class="pers-dot"></span> Habits · Goals · Wellbeing</div>
     </div>
 
-    <!-- STATS -->
     <div class="section-label">Overview</div>
     <div class="stats-grid">
-        <div class="stat-card sc-purple">
-            <div class="stat-icon si-purple">🎨</div>
-            <div class="stat-label">Total Tasks</div>
-            <div class="stat-num c-purple" data-target="<?= $total ?>"><?= $total ?></div>
-        </div>
-        <div class="stat-card sc-yellow">
-            <div class="stat-icon si-yellow">⏳</div>
-            <div class="stat-label">Pending</div>
-            <div class="stat-num c-yellow" data-target="<?= $pending ?>"><?= $pending ?></div>
-        </div>
-        <div class="stat-card sc-green">
-            <div class="stat-icon si-green">✅</div>
-            <div class="stat-label">Completed</div>
-            <div class="stat-num c-green" data-target="<?= $completed ?>"><?= $completed ?></div>
-        </div>
-        <div class="stat-card sc-pink">
-            <div class="stat-icon si-pink">💜</div>
-            <div class="stat-label">Progress</div>
-            <div class="stat-num c-pink" id="pctNum">0%</div>
-        </div>
+        <div class="stat-card sc-purple"><div class="stat-icon si-purple">🎨</div><div class="stat-label">Total Tasks</div><div class="stat-num c-purple" data-target="<?= $total ?>"><?= $total ?></div></div>
+        <div class="stat-card sc-yellow"><div class="stat-icon si-yellow">⏳</div><div class="stat-label">Pending</div><div class="stat-num c-yellow" data-target="<?= $pending ?>"><?= $pending ?></div></div>
+        <div class="stat-card sc-green"><div class="stat-icon si-green">✅</div><div class="stat-label">Completed</div><div class="stat-num c-green" data-target="<?= $completed ?>"><?= $completed ?></div></div>
+        <div class="stat-card sc-pink"><div class="stat-icon si-pink">💜</div><div class="stat-label">Progress</div><div class="stat-num c-pink" id="pctNum">0%</div></div>
     </div>
 
-    <!-- PROGRESS -->
     <div class="progress-band">
         <div class="pb-info">
             <div class="pb-label">Personal Progress</div>
@@ -327,13 +342,14 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
         <div class="pb-pct"><?= $progress ?>%</div>
     </div>
 
-    <!-- THREE COLUMNS -->
     <div class="section-label">Tasks, Habits & Mood</div>
     <div class="three-col">
-
         <!-- TASK LIST -->
         <div class="panel">
-            <div class="panel-title">📌 Personal Tasks</div>
+            <div class="panel-header">
+                <div class="panel-title" style="margin-bottom:0">📌 Personal Tasks</div>
+                <button class="add-task-btn" onclick="openAddModal()">＋ Add Task</button>
+            </div>
             <?php if ($total > 0): ?>
                 <?php foreach ($allTasks as $t):
                     $isDone = $t['status'] === 'completed'; ?>
@@ -346,10 +362,14 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
                         <?php endif; ?>
                     </div>
                     <span class="task-badge <?= $isDone ? 'badge-done' : 'badge-pending' ?>"><?= $isDone ? 'Done' : 'Pending' ?></span>
+                    <div class="task-actions">
+                        <button class="icon-btn btn-edit" onclick="openEditModal(<?= $t['id'] ?>, '<?= addslashes(htmlspecialchars($t['task_name'])) ?>', '<?= $t['due_date'] ?>', '<?= $t['status'] ?>')" title="Edit">✏️</button>
+                        <button class="icon-btn btn-del" onclick="openDeleteModal(<?= $t['id'] ?>, '<?= addslashes(htmlspecialchars($t['task_name'])) ?>')" title="Delete">🗑️</button>
+                    </div>
                 </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <div class="empty-state"><span>🎨</span>No personal tasks yet</div>
+                <div class="empty-state"><span>🎨</span>No personal tasks yet.<br>Click <b>+ Add Task</b>!</div>
             <?php endif; ?>
         </div>
 
@@ -359,30 +379,22 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
                 <div class="panel-title" style="margin-bottom:0">🔥 Daily Habits</div>
                 <button class="habit-add-btn" onclick="toggleAddForm()" title="Add habit">+</button>
             </div>
-
-            <!-- ADD FORM -->
             <form method="POST" class="habit-add-form" id="habitAddForm">
                 <input type="hidden" name="action" value="add">
                 <input type="text" name="name" class="habit-input" placeholder="New habit name..." required maxlength="100">
                 <button type="submit" class="habit-submit">Add Habit</button>
             </form>
-
-            <!-- HABIT LIST -->
             <?php if (count($habits) > 0): ?>
                 <?php foreach ($habits as $h): ?>
                 <div class="habit-item">
-                    <!-- Toggle done -->
                     <form method="POST" style="display:contents">
                         <input type="hidden" name="action" value="toggle">
                         <input type="hidden" name="id" value="<?= $h['id'] ?>">
-                        <button type="submit" class="habit-check <?= $h['done_today'] ? 'done' : '' ?>" title="Mark done">
-                            <?= $h['done_today'] ? '✓' : '' ?>
-                        </button>
+                        <button type="submit" class="habit-check <?= $h['done_today'] ? 'done' : '' ?>"><?= $h['done_today'] ? '✓' : '' ?></button>
                     </form>
                     <div class="habit-name"><?= htmlspecialchars($h['name']) ?></div>
                     <div class="habit-streak"><?= $h['streak'] ?>d <?= $h['streak'] >= 5 ? '🔥' : '' ?></div>
-                    <!-- Delete -->
-                    <button class="habit-del" onclick="confirmDeleteHabit(<?= $h['id'] ?>, '<?= addslashes($h['name']) ?>')" title="Delete">✕</button>
+                    <button class="habit-del" onclick="confirmDeleteHabit(<?= $h['id'] ?>, '<?= addslashes($h['name']) ?>')">✕</button>
                 </div>
                 <?php endforeach; ?>
             <?php else: ?>
@@ -395,20 +407,18 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
             <div class="mood-title">😊 Mood Check</div>
             <div class="mood-sub">How are you feeling today?</div>
             <div class="mood-row">
-                <div class="mood-btn" data-mood="Exhausted"   onclick="selectMood(this)">😫</div>
-                <div class="mood-btn" data-mood="Sad"         onclick="selectMood(this)">😕</div>
-                <div class="mood-btn" data-mood="Neutral"     onclick="selectMood(this)">😐</div>
+                <div class="mood-btn" data-mood="Exhausted" onclick="selectMood(this)">😫</div>
+                <div class="mood-btn" data-mood="Sad" onclick="selectMood(this)">😕</div>
+                <div class="mood-btn" data-mood="Neutral" onclick="selectMood(this)">😐</div>
                 <div class="mood-btn selected" data-mood="Good" onclick="selectMood(this)">🙂</div>
-                <div class="mood-btn" data-mood="Amazing"     onclick="selectMood(this)">😄</div>
+                <div class="mood-btn" data-mood="Amazing" onclick="selectMood(this)">😄</div>
             </div>
             <div class="mood-label" id="moodLabel">Feeling Good ✨</div>
             <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;">
                 <div class="panel-title" style="font-size:13px;margin-bottom:12px;">📅 Mood This Week</div>
                 <div style="display:flex;gap:8px;justify-content:space-between;">
-                    <?php
-                    $days  = ['M','T','W','T','F','S','S'];
-                    $moods = ['😄','🙂','😐','😄','🙂','😄','😄'];
-                    foreach ($days as $i => $d): ?>
+                    <?php $days=['M','T','W','T','F','S','S'];$moods=['😄','🙂','😐','😄','🙂','😄','😄'];
+                    foreach($days as $i=>$d): ?>
                     <div style="text-align:center;flex:1;">
                         <div style="font-size:16px;margin-bottom:4px;"><?= $moods[$i] ?></div>
                         <div style="font-size:10px;color:var(--text2);font-weight:700;"><?= $d ?></div>
@@ -419,37 +429,104 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
         </div>
     </div>
 
-    <!-- QUOTE -->
     <div class="quote-card">
         <div class="quote-text" id="quoteText">"The secret of getting ahead is getting started."</div>
         <div class="quote-author" id="quoteAuthor">— Mark Twain</div>
     </div>
-
 </main>
 
-<!-- DELETE HABIT MODAL -->
+<!-- ADD TASK MODAL -->
+<div class="modal-overlay" id="addModal">
+    <div class="modal-box">
+        <div class="modal-icon">📝</div>
+        <div class="modal-title">Add Personal Task</div>
+        <form method="POST">
+            <input type="hidden" name="action" value="add_task">
+            <div class="modal-field">
+                <label class="modal-label">Task Name</label>
+                <input type="text" name="task_name" class="modal-input" placeholder="e.g. Go for a morning run" required maxlength="255">
+            </div>
+            <div class="modal-field">
+                <label class="modal-label">Due Date</label>
+                <input type="date" name="due_date" class="modal-input">
+            </div>
+            <div class="modal-btns">
+                <button type="button" class="modal-btn modal-cancel" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="modal-btn modal-confirm-add">Add Task</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT TASK MODAL -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+        <div class="modal-icon">✏️</div>
+        <div class="modal-title">Edit Task</div>
+        <form method="POST">
+            <input type="hidden" name="action" value="edit_task">
+            <input type="hidden" name="id" id="editId">
+            <div class="modal-field">
+                <label class="modal-label">Task Name</label>
+                <input type="text" name="task_name" id="editName" class="modal-input" required maxlength="255">
+            </div>
+            <div class="modal-field">
+                <label class="modal-label">Due Date</label>
+                <input type="date" name="due_date" id="editDue" class="modal-input">
+            </div>
+            <div class="modal-field">
+                <label class="modal-label">Status</label>
+                <select name="status" id="editStatus" class="modal-select">
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+            <div class="modal-btns">
+                <button type="button" class="modal-btn modal-cancel" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="modal-btn modal-confirm-edit">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- DELETE TASK MODAL -->
 <div class="modal-overlay" id="deleteModal">
     <div class="modal-box">
         <div class="modal-icon">🗑️</div>
-        <div class="modal-title">Delete Habit?</div>
-        <div class="modal-sub" id="modalHabitName">This will permanently remove the habit.</div>
-        <div class="modal-btns">
-            <button class="modal-btn modal-cancel" onclick="closeModal()">Cancel</button>
-            <form method="POST" style="display:contents" id="deleteForm">
+        <div class="modal-title">Delete Task?</div>
+        <p class="modal-del-sub" id="deleteTaskName"></p>
+        <form method="POST">
+            <input type="hidden" name="action" value="delete_task">
+            <input type="hidden" name="id" id="deleteId">
+            <div class="modal-btns">
+                <button type="button" class="modal-btn modal-cancel" onclick="closeModals()">Cancel</button>
+                <button type="submit" class="modal-btn modal-confirm-del">Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- HABIT DELETE MODAL -->
+<div class="hmodal-overlay" id="habitDeleteModal">
+    <div class="hmodal-box">
+        <div style="font-size:40px;margin-bottom:12px;">🗑️</div>
+        <div style="font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;color:#fff;margin-bottom:6px;">Delete Habit?</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:22px;" id="modalHabitName">This will permanently remove the habit.</div>
+        <div style="display:flex;gap:10px;justify-content:center;">
+            <button class="modal-btn modal-cancel" onclick="closeHabitModal()" style="flex:1;padding:9px 24px;">Cancel</button>
+            <form method="POST" style="display:contents" id="habitDeleteForm">
                 <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="id" id="deleteHabitId">
-                <button type="submit" class="modal-btn modal-confirm">Delete</button>
+                <button type="submit" class="modal-btn modal-confirm-del" style="flex:1;">Delete</button>
             </form>
         </div>
     </div>
 </div>
 
 <script>
-/* CURSOR */
 const glow = document.getElementById('cursorGlow');
 document.addEventListener('mousemove', e => { glow.style.left=e.clientX+'px'; glow.style.top=e.clientY+'px'; });
 
-/* PARTICLES */
 const canvas = document.getElementById('particleCanvas');
 const ctx = canvas.getContext('2d');
 let W,H;
@@ -460,63 +537,58 @@ let pts=Array.from({length:65},()=>({x:Math.random()*window.innerWidth,y:Math.ra
 function draw(){ctx.clearRect(0,0,W,H);pts.forEach((p,i)=>{p.x+=p.vx;p.y+=p.vy;p.life-=.003;if(p.life<=0||p.y<-10)pts[i]={x:Math.random()*W,y:H+10,r:Math.random()*1.6+.4,vx:(Math.random()-.5)*.35,vy:-Math.random()*.5-.15,alpha:Math.random()*.4+.1,color:COLORS[Math.floor(Math.random()*4)],life:1};ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color;ctx.globalAlpha=p.alpha*p.life;ctx.fill();});ctx.globalAlpha=1;requestAnimationFrame(draw);}
 draw();
 
-/* COUNT-UP */
 document.querySelectorAll('.stat-num[data-target]').forEach(el=>{
-    const target=parseInt(el.dataset.target)||0;
-    if(!target)return;
-    let n=0;el.textContent='0';
-    const step=Math.ceil(target/50);
-    const t=setInterval(()=>{n=Math.min(n+step,target);el.textContent=n;if(n>=target)clearInterval(t);},16);
+    const target=parseInt(el.dataset.target)||0;if(!target)return;let n=0;el.textContent='0';
+    const step=Math.ceil(target/50);const t=setInterval(()=>{n=Math.min(n+step,target);el.textContent=n;if(n>=target)clearInterval(t);},16);
 });
-const pEl=document.getElementById('pctNum');
-let pn=0; const pTarget=<?= $progress ?>;
+const pEl=document.getElementById('pctNum');let pn=0;const pTarget=<?= $progress ?>;
 const pT=setInterval(()=>{pn=Math.min(pn+1,pTarget);pEl.textContent=pn+'%';if(pn>=pTarget)clearInterval(pT);},18);
-
-/* PROGRESS BAR */
 setTimeout(()=>{ document.getElementById('progBar').style.width='<?= $progress ?>%'; },400);
 
-/* HABIT ADD FORM TOGGLE */
-function toggleAddForm() {
-    const form = document.getElementById('habitAddForm');
-    form.classList.toggle('show');
-    if (form.classList.contains('show')) form.querySelector('input[name="name"]').focus();
+// TASK MODALS
+function openAddModal(){ document.getElementById('addModal').classList.add('show'); }
+function openEditModal(id, name, due, status){
+    document.getElementById('editId').value=id;
+    document.getElementById('editName').value=name;
+    document.getElementById('editDue').value=due;
+    document.getElementById('editStatus').value=status;
+    document.getElementById('editModal').classList.add('show');
 }
-
-/* DELETE MODAL */
-function confirmDeleteHabit(id, name) {
-    document.getElementById('modalHabitName').textContent = 'Delete "' + name + '"? This cannot be undone.';
-    document.getElementById('deleteHabitId').value = id;
+function openDeleteModal(id, name){
+    document.getElementById('deleteId').value=id;
+    document.getElementById('deleteTaskName').textContent='Delete "'+name+'"? This cannot be undone.';
     document.getElementById('deleteModal').classList.add('show');
 }
-function closeModal() { document.getElementById('deleteModal').classList.remove('show'); }
-document.getElementById('deleteModal').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+function closeModals(){ document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('show')); }
+document.querySelectorAll('.modal-overlay').forEach(m=>{ m.addEventListener('click',e=>{ if(e.target===m)closeModals(); }); });
 
-/* MOOD */
-const moodLabels = {'Exhausted':'Feeling exhausted... rest up 💙','Sad':'Hang in there 💜','Neutral':'Just getting through it 😌','Good':'Feeling good ✨','Amazing':'You\'re crushing it! 🔥'};
-function selectMood(btn){
-    document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));
-    btn.classList.add('selected');
-    document.getElementById('moodLabel').textContent = moodLabels[btn.dataset.mood] || '';
+// HABIT MODALS
+function toggleAddForm(){const f=document.getElementById('habitAddForm');f.classList.toggle('show');if(f.classList.contains('show'))f.querySelector('input[name="name"]').focus();}
+function confirmDeleteHabit(id,name){
+    document.getElementById('modalHabitName').textContent='Delete "'+name+'"? This cannot be undone.';
+    document.getElementById('deleteHabitId').value=id;
+    document.getElementById('habitDeleteModal').classList.add('show');
 }
+function closeHabitModal(){document.getElementById('habitDeleteModal').classList.remove('show');}
+document.getElementById('habitDeleteModal').addEventListener('click',function(e){if(e.target===this)closeHabitModal();});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closeModals();closeHabitModal();} });
 
-/* QUOTES */
-const quotes = [
-    {text:'"The secret of getting ahead is getting started."', author:'— Mark Twain'},
-    {text:'"Do something today that your future self will thank you for."', author:'— Unknown'},
-    {text:'"Small steps every day lead to big results."', author:'— Unknown'},
-    {text:'"You don\'t have to be great to start, but you have to start to be great."', author:'— Zig Ziglar'},
-    {text:'"Believe you can and you\'re halfway there."', author:'— Theodore Roosevelt'},
+// MOOD
+const moodLabels={'Exhausted':'Feeling exhausted... rest up 💙','Sad':'Hang in there 💜','Neutral':'Just getting through it 😌','Good':'Feeling good ✨','Amazing':'You\'re crushing it! 🔥'};
+function selectMood(btn){document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');document.getElementById('moodLabel').textContent=moodLabels[btn.dataset.mood]||'';}
+
+// QUOTES
+const quotes=[
+    {text:'"The secret of getting ahead is getting started."',author:'— Mark Twain'},
+    {text:'"Do something today that your future self will thank you for."',author:'— Unknown'},
+    {text:'"Small steps every day lead to big results."',author:'— Unknown'},
+    {text:'"You don\'t have to be great to start, but you have to start to be great."',author:'— Zig Ziglar'},
+    {text:'"Believe you can and you\'re halfway there."',author:'— Theodore Roosevelt'},
 ];
 let qi=0;
-function rotateQuote(){
-    qi=(qi+1)%quotes.length;
-    const qEl=document.getElementById('quoteText'),aEl=document.getElementById('quoteAuthor');
-    qEl.style.opacity='0';aEl.style.opacity='0';
-    setTimeout(()=>{qEl.textContent=quotes[qi].text;aEl.textContent=quotes[qi].author;qEl.style.transition='opacity .6s';aEl.style.transition='opacity .6s';qEl.style.opacity='1';aEl.style.opacity='1';},400);
-}
+function rotateQuote(){qi=(qi+1)%quotes.length;const qEl=document.getElementById('quoteText'),aEl=document.getElementById('quoteAuthor');qEl.style.opacity='0';aEl.style.opacity='0';setTimeout(()=>{qEl.textContent=quotes[qi].text;aEl.textContent=quotes[qi].author;qEl.style.transition='opacity .6s';aEl.style.transition='opacity .6s';qEl.style.opacity='1';aEl.style.opacity='1';},400);}
 setInterval(rotateQuote,8000);
 
-/* NAV GLOW */
 document.querySelectorAll('.nav-link').forEach(l=>{
     l.addEventListener('mouseenter',()=>{l.style.textShadow='0 0 12px rgba(167,139,250,.4)';});
     l.addEventListener('mouseleave',()=>{l.style.textShadow='';});
