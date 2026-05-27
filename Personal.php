@@ -179,7 +179,6 @@ body::after{content:'';position:fixed;inset:0;background-image:radial-gradient(c
 .icon-teal{background:rgba(0,229,160,.15)}.icon-blue{background:rgba(79,195,247,.15)}.icon-purple{background:rgba(167,139,250,.15)}.icon-yellow{background:rgba(255,184,48,.15)}.icon-gray{background:rgba(255,255,255,.07)}.icon-red{background:rgba(255,80,80,.12)}
 .sidebar-footer{margin-top:auto;padding:16px 22px 24px;border-top:1px solid var(--border);}
 
-/* MAIN */
 .main{margin-left:var(--sidebar-w);flex:1;padding:32px 36px;position:relative;z-index:2;min-height:100vh;}
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:28px;flex-wrap:wrap;}
 .topbar-left h1{font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;}
@@ -613,7 +612,6 @@ function closeSidebar(){
 const glow = document.getElementById('cursorGlow');
 document.addEventListener('mousemove', e => { glow.style.left=e.clientX+'px'; glow.style.top=e.clientY+'px'; });
 
-/* PARTICLES */
 const canvas = document.getElementById('particleCanvas');
 const ctx = canvas.getContext('2d');
 let W,H;

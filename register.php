@@ -1,4 +1,6 @@
 <?php
+ob_start();
+session_start();
 include 'db.php';
 
 $error = "";
@@ -32,10 +34,11 @@ if (isset($_POST['register'])) {
                 $error = "Something went wrong. Try again.";
             }
         }
+        $check->close();
     }
 }
+ob_end_flush();
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -187,6 +190,67 @@ if (isset($_POST['register'])) {
         @media (max-width: 576px) {
             .card { border-radius: 18px; }
         }
+        @keyframes iconPulse {
+            0%,100% { box-shadow: 0 6px 20px rgba(0,229,160,0.3); }
+            50%      { box-shadow: 0 6px 30px rgba(0,229,160,0.6); }
+        }
+
+        .auth-title { font-family: 'Nunito', sans-serif; font-size: 24px; font-weight: 900; color: #fff; letter-spacing: -0.4px; margin-bottom: 3px; }
+        .auth-sub   { font-size: 12px; color: rgba(255,255,255,0.45); margin-bottom: 24px; }
+
+        .error-box {
+            background: rgba(255,82,82,0.12);
+            border: 1px solid rgba(255,82,82,0.3);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 12px; color: #ff8a80;
+            margin-bottom: 16px;
+        }
+
+        .field-label {
+            display: block;
+            font-size: 10px; font-weight: 700;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase; letter-spacing: .08em;
+            margin-bottom: 6px;
+        }
+        .field-wrap { margin-bottom: 14px; }
+
+        input[type=text], input[type=password] {
+            width: 100%; height: 42px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            padding: 0 14px;
+            font-size: 13px; color: #fff;
+            font-family: 'Outfit', sans-serif;
+            outline: none;
+            transition: border-color .2s, background .2s;
+        }
+        input::placeholder { color: rgba(255,255,255,0.25); }
+        input:focus {
+            border-color: rgba(0,229,160,0.5);
+            background: rgba(0,229,160,0.05);
+        }
+
+        .submit-btn {
+            width: 100%; height: 44px;
+            background: linear-gradient(135deg, #00e5a0 0%, #4fc3f7 100%);
+            border: none; border-radius: 50px;
+            color: #0a1a14;
+            font-family: 'Nunito', sans-serif;
+            font-size: 15px; font-weight: 800;
+            cursor: pointer; margin-top: 6px;
+            box-shadow: 0 6px 24px rgba(0,229,160,0.35);
+            transition: transform .15s, box-shadow .15s;
+        }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,229,160,0.5); }
+
+        .divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 20px 0; }
+
+        .link-row { font-size: 12px; color: rgba(255,255,255,0.4); text-align: center; }
+        .link-row a { color: #4fc3f7; font-weight: 700; text-decoration: none; }
+        .link-row a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -230,8 +294,53 @@ if (isset($_POST['register'])) {
                 </div>
             </div>
         </div>
+
+        <div class="auth-icon">🌿</div>
+        <h1 class="auth-title">New Student</h1>
+        <p class="auth-sub">Sign up to join the Study Room.</p>
+
+        <?php if (!empty($error)): ?>
+            <div class="error-box">⚠ <?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+
+        <form method="POST">
+            <div class="field-wrap">
+                <label class="field-label" for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Choose a username"
+                       value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>" required>
+            </div>
+            <div class="field-wrap">
+                <label class="field-label" for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Choose a password" required>
+            </div>
+            <button type="submit" name="register" class="submit-btn">Create Account</button>
+        </form>
+
+        <hr class="divider">
+        <p class="link-row">Already studying? <a href="login.php">Log in here</a></p>
     </div>
 </div>
 
+<script>
+    const music = document.getElementById('studyMusic');
+    const dot   = document.getElementById('musicDot');
+    const name  = document.getElementById('musicName');
+    const btn   = document.getElementById('musicBtn');
+    music.volume = 0.3;
+
+    function toggleMusic() {
+        if (music.paused) {
+            music.play().catch(() => {});
+            dot.classList.add('playing');
+            name.textContent = 'now playing';
+            btn.textContent  = 'pause';
+        } else {
+            music.pause();
+            dot.classList.remove('playing');
+            name.textContent = 'ghibli_lofi.mp3';
+            btn.textContent  = 'play';
+        }
+    }
+</script>
 </body>
 </html>

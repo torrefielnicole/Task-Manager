@@ -18,7 +18,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $due      = $_POST['due_date'] ?? '';
         $category = 'academic';
         $status   = 'pending';
-
         if ($name !== '') {
             $stmt = $conn->prepare("INSERT INTO task (task_name, due_date, category, status) VALUES (?, ?, ?, ?)");
             $stmt->bind_param("ssss", $name, $due, $category, $status);
@@ -1007,9 +1006,7 @@ body::after{
     </div>
 </aside>
 
-<!-- MAIN -->
 <main class="main">
-
     <div class="topbar">
         <div class="topbar-left">
             <h1>📚 Academic</h1>
@@ -1024,7 +1021,6 @@ body::after{
         </div>
     </div>
 
-    <!-- STATS -->
     <div class="section-label">Overview</div>
 
     <div class="stats-grid">
@@ -1055,7 +1051,6 @@ body::after{
 
     </div>
 
-    <!-- PROGRESS -->
     <div class="progress-band">
 
         <div class="pb-info">
@@ -1175,7 +1170,6 @@ body::after{
 
         </div>
 
-        <!-- DEADLINES -->
         <div class="deadline-panel">
 
             <div class="panel-title">
@@ -1243,7 +1237,6 @@ body::after{
 
     </div>
 
-    <!-- CHART -->
     <div class="chart-card">
 
         <div class="chart-title">
@@ -1253,7 +1246,6 @@ body::after{
         <canvas id="acadChart" height="110"></canvas>
 
     </div>
-
 </main>
 
 <!-- ADD MODAL -->

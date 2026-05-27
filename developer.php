@@ -9,6 +9,10 @@ if (!isset($_SESSION['user'])) {
     exit();
 }
 $current = basename($_SERVER['PHP_SELF']);
+
+// Fetch real counts from the DB for the tech stack section
+$totalTasks = $conn->query("SELECT COUNT(*) as c FROM task")->fetch_assoc()['c'];
+$totalUsers = $conn->query("SELECT COUNT(*) as c FROM users")->fetch_assoc()['c'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -57,20 +61,6 @@ body::before {
 @keyframes bgShift {
     0%   { opacity:1;    filter:hue-rotate(0deg); }
     100% { opacity:0.85; filter:hue-rotate(18deg); }
-}
-
-body::after {
-    content: '';
-    position: fixed; inset: 0;
-    background-image: radial-gradient(circle, rgba(79,195,247,0.3) 1px, transparent 1px);
-    background-size: 90px 90px;
-    opacity: 0.1;
-    animation: floatMotes 40s linear infinite;
-    z-index: 0; pointer-events: none;
-}
-@keyframes floatMotes {
-    from { transform: translateY(0); }
-    to   { transform: translateY(-900px); }
 }
 
 .orb { position:fixed; border-radius:50%; filter:blur(65px); opacity:0.15; pointer-events:none; z-index:0; animation:orbFloat linear infinite; }
@@ -130,15 +120,10 @@ body::after {
 .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:32px; animation:slideUp 0.5s ease both; }
 .topbar-left h1 { font-family:'Nunito',sans-serif; font-size:26px; font-weight:900; }
 .date-badge { display:inline-flex; align-items:center; gap:5px; background:rgba(255,255,255,0.1); border:1px solid var(--border); border-radius:20px; padding:4px 12px; font-size:12px; color:var(--text2); margin-top:6px; }
-
 @keyframes slideUp {
     from { opacity:0; transform:translateY(24px); }
     to   { opacity:1; transform:translateY(0); }
 }
-
-/* ── DEVELOPER PAGE ── */
-.dev-title { font-family:'Nunito',sans-serif; font-size:26px; font-weight:900; color:#fff; letter-spacing:-0.4px; margin-bottom:4px; }
-.dev-sub { font-size:12px; color:var(--text2); font-family:var(--mono); margin-bottom:22px; }
 
 .section-label {
     font-size:10px; font-weight:700; letter-spacing:0.12em;
@@ -147,7 +132,7 @@ body::after {
 }
 .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
 
-/* Personal info card */
+/* ── INFO TOGGLE ── */
 .info-toggle-btn {
     display:inline-flex; align-items:center; gap:8px;
     padding:10px 20px; border:none; border-radius:50px;
@@ -177,36 +162,55 @@ body::after {
 .personal-val { color:#fff; font-weight:500; }
 .personal-quote { margin-top:14px; font-style:italic; font-size:12px; color:var(--text2); padding-top:12px; border-top:1px solid rgba(255,255,255,0.07); }
 
-/* API list */
-.api-list { margin-bottom:24px; }
-.api-row {
-    display:flex; align-items:center; gap:12px;
-    padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.06);
-    transition:background 0.15s; border-radius:6px;
+/* ── TECH STACK CARDS ── */
+.tech-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+.tech-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:18px 20px;
+    backdrop-filter:blur(10px);
+    transition:transform 0.18s;
 }
-.api-row:last-child { border-bottom:none; }
-.api-row:hover { background:rgba(255,255,255,0.04); padding-left:8px; }
+.tech-card:hover { transform:translateY(-3px); }
+.tech-card .tc-icon { font-size:26px; margin-bottom:10px; }
+.tech-card .tc-name { font-family:'Nunito',sans-serif; font-size:15px; font-weight:800; color:#fff; margin-bottom:3px; }
+.tech-card .tc-desc { font-size:12px; color:var(--text2); line-height:1.5; }
+.tc-badge {
+    display:inline-block; font-size:10px; font-weight:700;
+    padding:2px 8px; border-radius:20px; margin-top:8px;
+    font-family:var(--mono);
+}
+.badge-green  { background:rgba(0,229,160,0.15); color:var(--done); }
+.badge-blue   { background:rgba(79,195,247,0.15); color:var(--accent); }
+.badge-yellow { background:rgba(255,184,48,0.15); color:var(--warn); }
 
-.method { font-size:10px; font-weight:700; font-family:var(--mono); padding:4px 10px; border-radius:6px; min-width:48px; text-align:center; }
-.m-get  { background:rgba(0,229,160,0.15);  color:var(--done); }
-.m-post { background:rgba(79,195,247,0.15);  color:var(--accent); }
-.m-del  { background:rgba(255,82,82,0.15);   color:var(--danger); }
-.m-put  { background:rgba(255,184,48,0.15);  color:var(--warn); }
+/* ── DB STATS ── */
+.db-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:24px; }
+.db-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:18px 20px;
+    display:flex; align-items:center; gap:14px;
+    backdrop-filter:blur(10px);
+}
+.db-icon { font-size:28px; }
+.db-label { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:4px; }
+.db-num { font-family:'Nunito',sans-serif; font-size:32px; font-weight:900; color:#fff; line-height:1; }
 
-.api-path   { font-size:13px; font-family:var(--mono); color:#fff; flex:1; }
-.api-status { font-size:11px; color:var(--text2); font-family:var(--mono); }
-
-/* Code snippet */
-.code-snip {
-    background:rgba(5,8,30,0.7);
+/* ── HOW IT WORKS ── */
+.how-panel {
+    background:rgba(5,8,30,0.6);
     border:1px solid var(--border);
     border-radius:var(--radius);
-    padding:20px 22px;
+    padding:20px 24px;
     font-family:var(--mono);
     font-size:13px;
-    line-height:1.9;
+    line-height:2;
     color:var(--text2);
 }
+.how-panel .hl-green  { color:var(--done); }
+.how-panel .hl-blue   { color:var(--accent); }
+.how-panel .hl-yellow { color:var(--warn); }
+.how-panel .hl-white  { color:#fff; font-weight:500; }
+.how-panel .comment   { color:rgba(255,255,255,0.25); }
 
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-track { background:transparent; }
@@ -288,20 +292,20 @@ body::after {
 
     <nav class="nav-section">
         <div class="nav-label">Main</div>
-        <a href="index.php" class="nav-link <?= $current === 'index.php' && !isset($_GET['category']) ? 'active' : '' ?>">
+        <a href="index.php" class="nav-link <?= $current === 'index.php' ? 'active' : '' ?>">
             <span class="nav-icon icon-teal">🏠</span> Dashboard
         </a>
     </nav>
 
     <nav class="nav-section">
         <div class="nav-label">Categories</div>
-        <a href="index.php?category=academic" class="nav-link <?= isset($_GET['category']) && $_GET['category'] === 'academic' ? 'active' : '' ?>">
+        <a href="academic.php" class="nav-link <?= $current === 'academic.php' ? 'active' : '' ?>">
             <span class="nav-icon icon-blue">📚</span> Academic
         </a>
-        <a href="index.php?category=personal" class="nav-link <?= isset($_GET['category']) && $_GET['category'] === 'personal' ? 'active' : '' ?>">
+        <a href="personal.php" class="nav-link <?= $current === 'personal.php' ? 'active' : '' ?>">
             <span class="nav-icon icon-purple">🎨</span> Personal
         </a>
-        <a href="index.php?category=project" class="nav-link <?= isset($_GET['category']) && $_GET['category'] === 'project' ? 'active' : '' ?>">
+        <a href="project.php" class="nav-link <?= $current === 'project.php' ? 'active' : '' ?>">
             <span class="nav-icon icon-yellow">🚀</span> Project
         </a>
     </nav>
@@ -328,12 +332,10 @@ body::after {
 
     <div class="topbar">
         <div class="topbar-left">
-            <h1 class="dev-title">👨‍💻 Developer</h1>
+            <h1>👨‍💻 Developer</h1>
             <div class="date-badge">📅 <?= date('l, F j, Y') ?></div>
         </div>
     </div>
-
-    <p class="dev-sub">// api endpoints · v2.4.1</p>
 
     <!-- PERSONAL INFO -->
     <button class="info-toggle-btn" onclick="toggleInfo()">
@@ -354,44 +356,59 @@ body::after {
         <div class="personal-quote">"Success is not final; failure is not fatal: It is the courage to continue that counts." — Winston Churchill</div>
     </div>
 
-    <!-- API LIST -->
-    <div class="section-label">API Endpoints</div>
-    <div class="api-list">
-        <div class="api-row">
-            <span class="method m-get">GET</span>
-            <span class="api-path">/api/tasks</span>
-            <span class="api-status">200 OK</span>
+    <!-- LIVE DB STATS -->
+    <div class="section-label">Live Database Stats</div>
+    <div class="db-row">
+        <div class="db-card">
+            <div class="db-icon">📋</div>
+            <div>
+                <div class="db-label">Total Tasks</div>
+                <div class="db-num"><?= $totalTasks ?></div>
+            </div>
         </div>
-        <div class="api-row">
-            <span class="method m-post">POST</span>
-            <span class="api-path">/api/tasks/new</span>
-            <span class="api-status">201 Created</span>
-        </div>
-        <div class="api-row">
-            <span class="method m-put">PUT</span>
-            <span class="api-path">/api/tasks/:id</span>
-            <span class="api-status">200 OK</span>
-        </div>
-        <div class="api-row">
-            <span class="method m-del">DEL</span>
-            <span class="api-path">/api/tasks/:id</span>
-            <span class="api-status">204 No Content</span>
-        </div>
-        <div class="api-row">
-            <span class="method m-get">GET</span>
-            <span class="api-path">/api/users/me</span>
-            <span class="api-status">200 OK</span>
+        <div class="db-card">
+            <div class="db-icon">👤</div>
+            <div>
+                <div class="db-label">Registered Users</div>
+                <div class="db-num"><?= $totalUsers ?></div>
+            </div>
         </div>
     </div>
 
-    <!-- CODE SAMPLE -->
-    <div class="section-label">Sample Request</div>
-    <div class="code-snip">
-        <span style="color:#00e5a0;">fetch</span>(<span style="color:#ffb830;">'/api/tasks'</span>, {<br>
-        &nbsp;&nbsp;method: <span style="color:#ffb830;">'GET'</span>,<br>
-        &nbsp;&nbsp;headers: { <span style="color:#ffb830;">'Authorization'</span>: <span style="color:#ffb830;">`Bearer ${token}`</span> }<br>
-        }).<span style="color:#00e5a0;">then</span>(r =&gt; r.<span style="color:#00e5a0;">json</span>())<br>
-        &nbsp;&nbsp;.<span style="color:#00e5a0;">then</span>(data =&gt; <span style="color:#00e5a0;">console</span>.<span style="color:#4fc3f7;">log</span>(data));
+    <!-- TECH STACK -->
+    <div class="section-label">Tech Stack</div>
+    <div class="tech-grid">
+        <div class="tech-card">
+            <div class="tc-icon">🐘</div>
+            <div class="tc-name">PHP</div>
+            <div class="tc-desc">Server-side logic, session handling, prepared statements for all DB queries.</div>
+            <span class="tc-badge badge-blue">Backend</span>
+        </div>
+        <div class="tech-card">
+            <div class="tc-icon">🗄️</div>
+            <div class="tc-name">MySQL</div>
+            <div class="tc-desc">Stores users and tasks. Uses MySQLi with prepared statements to prevent SQL injection.</div>
+            <span class="tc-badge badge-yellow">Database</span>
+        </div>
+        <div class="tech-card">
+            <div class="tc-icon">🎨</div>
+            <div class="tc-name">HTML / CSS / JS</div>
+            <div class="tc-desc">Pure vanilla frontend — no frameworks. Animated canvas particles, donut charts, and modals built from scratch.</div>
+            <span class="tc-badge badge-green">Frontend</span>
+        </div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div class="section-label">How This App Works</div>
+    <div class="how-panel">
+        <span class="comment">// No external APIs — everything runs on your server</span><br>
+        <span class="hl-green">Authentication</span> &nbsp;→ &nbsp;<span class="hl-white">PHP sessions + password_hash() / password_verify()</span><br>
+        <span class="hl-green">Database</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ &nbsp;<span class="hl-white">MySQLi prepared statements (no raw queries)</span><br>
+        <span class="hl-green">Task CRUD</span> &nbsp;&nbsp;&nbsp;→ &nbsp;<span class="hl-white">add.php · edit.php · delete.php · delete_all.php</span><br>
+        <span class="hl-green">Categories</span> &nbsp;&nbsp;&nbsp;→ &nbsp;<span class="hl-white">academic · personal · project (stored in task table)</span><br>
+        <span class="hl-green">Charts</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ &nbsp;<span class="hl-white">Canvas API donut charts drawn in vanilla JS</span><br>
+        <span class="hl-green">Routing</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ &nbsp;<span class="hl-white">PHP file-based (index.php · academic.php · etc.)</span><br>
+        <span class="hl-yellow">No REST API</span> &nbsp;→ &nbsp;<span class="hl-white">pages render server-side, no fetch() calls to backend</span>
     </div>
 
 </main>
@@ -460,6 +477,5 @@ document.addEventListener('keydown', (e) => {
     if(e.key === 'Escape') closeSidebar();
 });
 </script>
-
 </body>
 </html>

@@ -2,13 +2,12 @@
 include 'db.php';
 session_start();
 
-$error = ""; // Initialize to avoid "Undefined variable" notices
+$error = "";
 
 if (isset($_POST['login'])) {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
-    // ✅ FIXED: Using Prepared Statements to prevent SQL Injection
     $stmt = $conn->prepare("SELECT * FROM users WHERE username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
@@ -20,11 +19,10 @@ if (isset($_POST['login'])) {
         header("Location: index.php");
         exit();
     } else {
-        $error = "Oh no! Invalid login.";
+        $error = "Invalid username or password.";
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -177,6 +175,56 @@ if (isset($_POST['login'])) {
         @media (max-width: 576px) {
             .card { border-radius: 18px; }
         }
+
+        .field-label {
+            display: block;
+            font-size: 10px; font-weight: 700;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase; letter-spacing: .08em;
+            margin-bottom: 6px;
+        }
+        .field-wrap { margin-bottom: 14px; }
+
+        input[type=text], input[type=password] {
+            width: 100%; height: 42px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px;
+            padding: 0 14px;
+            font-size: 13px; color: #fff;
+            font-family: 'Outfit', sans-serif;
+            outline: none;
+            transition: border-color .2s, background .2s;
+        }
+        input::placeholder { color: rgba(255,255,255,0.25); }
+        input:focus {
+            border-color: rgba(79,195,247,0.5);
+            background: rgba(79,195,247,0.06);
+        }
+
+        .submit-btn {
+            width: 100%; height: 44px;
+            background: linear-gradient(135deg, #4fc3f7 0%, #7c6ef7 100%);
+            border: none; border-radius: 50px;
+            color: #fff;
+            font-family: 'Nunito', sans-serif;
+            font-size: 15px; font-weight: 800;
+            cursor: pointer; margin-top: 6px;
+            box-shadow: 0 6px 24px rgba(79,195,247,0.35);
+            transition: transform .15s, box-shadow .15s;
+            animation: btnPulse 3s ease-in-out infinite;
+        }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(79,195,247,0.5); }
+        @keyframes btnPulse {
+            0%,100% { box-shadow: 0 6px 24px rgba(79,195,247,0.35); }
+            50%      { box-shadow: 0 6px 36px rgba(79,195,247,0.6), 0 0 0 6px rgba(79,195,247,0.07); }
+        }
+
+        .divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 20px 0; }
+
+        .link-row { font-size: 12px; color: rgba(255,255,255,0.4); text-align: center; }
+        .link-row a { color: #4fc3f7; font-weight: 700; text-decoration: none; }
+        .link-row a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -214,8 +262,31 @@ if (isset($_POST['login'])) {
                 </div>
             </div>
         </div>
+
+        <div class="auth-icon">🕯️</div>
+        <h1 class="auth-title">Study Room</h1>
+        <p class="auth-sub">Enter the room to begin your journey.</p>
+
+        <?php if (!empty($error)): ?>
+            <div class="error-box">⚠ <?= htmlspecialchars($error) ?></div>
+        <?php endif; ?>
+
+        <form method="POST" action="">
+            <div class="field-wrap">
+                <label class="field-label" for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Your username" required autocomplete="off">
+            </div>
+            <div class="field-wrap">
+                <label class="field-label" for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Your password" required>
+            </div>
+            <button type="submit" name="login" class="submit-btn">Open Door</button>
+        </form>
+
+        <hr class="divider">
+        <p class="link-row">New student? <a href="register.php">Register here</a></p>
     </div>
 </div>
 
 </body>
-</html>   
+</html>
