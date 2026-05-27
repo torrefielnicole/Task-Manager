@@ -211,9 +211,64 @@ body::after {
 ::-webkit-scrollbar { width:4px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:99px; }
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width:4px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:99px; }
+
+    /* Mobile / Responsive tweaks (match Academic.php responsiveness) */
+    .mobile-menu-btn{
+        display:none;
+        position:fixed;
+        top:16px;
+        left:16px;
+        z-index:1100;
+        width:44px;
+        height:44px;
+        border:none;
+        border-radius:12px;
+        background:rgba(15,20,70,.95);
+        color:#fff;
+        font-size:20px;
+        display:flex; align-items:center; justify-content:center;
+        backdrop-filter:blur(8px);
+        cursor:pointer;
+    }
+
+    .sidebar-overlay{
+        display:none;
+        position:fixed; inset:0;
+        background:rgba(0,0,0,0.5);
+        z-index:1050;
+    }
+
+    @media (max-width:1100px){
+        .metrics-grid{ grid-template-columns:repeat(2,1fr); }
+    }
+
+    @media (max-width:900px){
+        .mobile-menu-btn{ display:flex; }
+        .sidebar{ transform:translateX(-100%); transition:transform 0.28s ease; z-index:1101; }
+        .sidebar.show{ transform:translateX(0); }
+        .sidebar-overlay.show{ display:block; }
+        .main{ margin-left:0; padding:82px 18px 20px; }
+        .two-col{ grid-template-columns:1fr; }
+        .topbar{ flex-direction:column; align-items:flex-start; gap:10px; }
+        .metrics-grid{ grid-template-columns:1fr; }
+    }
+
+    @media (max-width:480px){
+        .main{ padding:72px 12px 18px; }
+        .topbar-left h1{ font-size:20px; }
+        .metric-val{ font-size:20px; }
+    }
+
 </style>
 </head>
 <body>
+
+<button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
 <div class="orb orb1"></div>
 <div class="orb orb2"></div>
@@ -222,7 +277,7 @@ body::after {
 <div class="cursor-glow" id="cursorGlow"></div>
 
 <!-- SIDEBAR -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
         <div class="brand-logo">
             <div class="brand-icon">📋</div>
@@ -291,6 +346,12 @@ body::after {
         <div class="personal-row"><span class="personal-key">Age</span><span class="personal-val">21 years old</span></div>
         <div class="personal-row"><span class="personal-key">Address</span><span class="personal-val">Ilaud, Inabanga, Bohol</span></div>
         <div class="personal-quote">"The best way to predict the future is to invent it." — Alan Kay</div>
+        <hr style="margin:16px 0; border-color:rgba(255,255,255,0.04)">
+        <h2>👥 Additional Person</h2>
+        <div class="personal-row"><span class="personal-key">Name</span><span class="personal-val">Jessie Anora</span></div>
+        <div class="personal-row"><span class="personal-key">Age</span><span class="personal-val">20 years old</span></div>
+        <div class="personal-row"><span class="personal-key">Address</span><span class="personal-val">Nabuad, Inabanga, Bohol</span></div>
+        <div class="personal-quote">"Success is not final; failure is not fatal: It is the courage to continue that counts." — Winston Churchill</div>
     </div>
 
     <!-- API LIST -->
@@ -373,6 +434,30 @@ drawParticles();
 document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('mouseenter', () => link.style.textShadow='0 0 12px rgba(79,195,247,0.4)');
     link.addEventListener('mouseleave', () => link.style.textShadow='');
+});
+
+/* ── MOBILE SIDEBAR TOGGLE ── */
+function toggleSidebar(){
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebarOverlay');
+    if(!sb) return;
+    sb.classList.toggle('show');
+    if(ov) ov.classList.toggle('show');
+}
+
+function closeSidebar(){
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebarOverlay');
+    if(sb) sb.classList.remove('show');
+    if(ov) ov.classList.remove('show');
+}
+
+// Close sidebar when a nav link is clicked (mobile)
+document.querySelectorAll('.nav-link').forEach(l => l.addEventListener('click', () => closeSidebar()));
+
+// Close on Escape
+document.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') closeSidebar();
 });
 </script>
 

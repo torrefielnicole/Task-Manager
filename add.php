@@ -392,18 +392,12 @@ body::after {
                         <input type="date" name="due_date">
                     </div>
 
-                    <!-- Status -->
-                    <div class="field full">
-                        <label>Status</label>
-                        <div class="status-group">
-                            <div class="stat-btn active-pending" data-stat="pending" onclick="setStatus('pending')">⏳ Pending</div>
-                            <div class="stat-btn" data-stat="completed" onclick="setStatus('completed')">✅ Completed</div>
-                        </div>
-                    </div>
-
                     <!-- Submit -->
                     <div class="field full" style="margin-top:8px">
-                        <button type="submit" name="submit" class="btn-submit">💾 Save Task</button>
+                        <div class="action-row">
+                            <a href="index.php" class="btn-cancel">✖ Exit</a>
+                            <button type="submit" name="submit" class="btn-submit">💾 Save Task</button>
+                        </div>
                     </div>
 
                 </div>
@@ -462,14 +456,6 @@ function setPriority(val, label) {
     document.querySelectorAll('.pri-btn').forEach(b => {
         b.className = 'pri-btn';
         if (parseInt(b.dataset.pri) === val) b.classList.add('active-' + label);
-    });
-}
-
-function setStatus(val) {
-    document.getElementById('statusInput').value = val;
-    document.querySelectorAll('.stat-btn').forEach(b => {
-        b.className = 'stat-btn';
-        if (b.dataset.stat === val) b.classList.add('active-' + val);
     });
 }
 

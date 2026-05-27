@@ -159,11 +159,61 @@ body::before {
 @keyframes scaleIn { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
 @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
 
+/* ══════════════════════════════════════
+   HAMBURGER BUTTON (mobile only)
+══════════════════════════════════════ */
+.hamburger {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 300;
+    width: 42px;
+    height: 42px;
+    background: rgba(15,22,90,0.92);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    backdrop-filter: blur(18px);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    transition: background 0.2s;
+}
+.hamburger:hover { background: rgba(79,195,247,0.15); }
+.hamburger span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: #fff;
+    border-radius: 2px;
+    transition: transform 0.3s, opacity 0.3s;
+}
+.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ══════════════════════════════════════
+   SIDEBAR OVERLAY (mobile)
+══════════════════════════════════════ */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5,10,40,0.6);
+    backdrop-filter: blur(3px);
+    z-index: 150;
+}
+.sidebar-overlay.show { display: block; }
+
 /* ── SIDEBAR ── */
 .sidebar {
     position:fixed;left:0;top:0;width:var(--sidebar-w);height:100vh;
     background:rgba(15,22,90,0.92);border-right:1px solid var(--border);
-    display:flex;flex-direction:column;z-index:100;backdrop-filter:blur(18px);
+    display:flex;flex-direction:column;z-index:200;backdrop-filter:blur(18px);
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
 }
 .sidebar-brand { padding:28px 22px 22px;border-bottom:1px solid var(--border); }
 .brand-logo { display:flex;align-items:center;gap:10px;margin-bottom:4px; }
@@ -407,6 +457,76 @@ body::before {
 ::-webkit-scrollbar { width:5px; }
 ::-webkit-scrollbar-track { background:transparent; }
 ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.12);border-radius:99px; }
+
+/* ══════════════════════════════════════
+   RESPONSIVE — TABLET (max 1024px)
+══════════════════════════════════════ */
+@media (max-width: 1024px) {
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+    .bottom-row { grid-template-columns: 1fr; }
+    .side-panel { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE — MOBILE (max 768px)
+══════════════════════════════════════ */
+@media (max-width: 768px) {
+    /* Show hamburger */
+    .hamburger { display: flex; }
+
+    /* Hide sidebar off-screen by default */
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+
+    /* Main takes full width */
+    .main {
+        margin-left: 0;
+        padding: 72px 16px 24px;
+    }
+
+    /* Topbar */
+    .topbar { flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+    .topbar-left h1 { font-size: 20px; }
+    .btn-add { width: 100%; justify-content: center; }
+
+    /* Stat cards: 2 columns */
+    .stat-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .pcard { padding: 14px; }
+    .pcard-num { font-size: 28px; }
+    .pcard-icon-wrap { width: 36px; height: 36px; font-size: 16px; }
+
+    /* Donut row: single column */
+    .donut-row { grid-template-columns: 1fr; gap: 10px; }
+
+    /* Bottom row: single column */
+    .bottom-row { grid-template-columns: 1fr; }
+
+    /* Side panel: single column */
+    .side-panel { display: flex; flex-direction: column; }
+
+    /* Table: hide less important columns */
+    .attn-table th:nth-child(3),
+    .attn-table td:nth-child(3),
+    .attn-table th:nth-child(4),
+    .attn-table td:nth-child(4) { display: none; }
+
+    /* Table toolbar: wrap */
+    .table-toolbar { flex-wrap: wrap; }
+    .btn-delete-all { width: 100%; justify-content: center; }
+
+    /* Modal full width on mobile */
+    .modal-box { width: 90%; padding: 24px 18px; }
+}
+
+/* ══════════════════════════════════════
+   RESPONSIVE — SMALL MOBILE (max 480px)
+══════════════════════════════════════ */
+@media (max-width: 480px) {
+    .stat-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .pcard-num { font-size: 24px; }
+    .pcard-sub, .pcard-detail { display: none; }
+    .main { padding: 68px 12px 20px; }
+}
 </style>
 </head>
 <body>
@@ -419,8 +539,18 @@ body::before {
 <canvas id="particleCanvas"></canvas>
 <div class="cursor-glow" id="cursorGlow"></div>
 
+<!-- ══ HAMBURGER BUTTON ══ -->
+<button class="hamburger" id="hamburger" aria-label="Toggle menu">
+    <span></span>
+    <span></span>
+    <span></span>
+</button>
+
+<!-- ══ SIDEBAR OVERLAY ══ -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <!-- ══ SIDEBAR ══ -->
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
         <div class="brand-logo">
             <div class="brand-icon">📋</div>
@@ -793,6 +923,36 @@ body::before {
 </div>
 
 <script>
+/* ── HAMBURGER MENU ── */
+const hamburger = document.getElementById('hamburger');
+const sidebar   = document.getElementById('sidebar');
+const overlay   = document.getElementById('sidebarOverlay');
+
+function openSidebar() {
+    sidebar.classList.add('open');
+    overlay.classList.add('show');
+    hamburger.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeSidebar() {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+    hamburger.classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+hamburger.addEventListener('click', () => {
+    sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+});
+overlay.addEventListener('click', closeSidebar);
+
+// Close sidebar when a nav link is tapped on mobile
+sidebar.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+        if (window.innerWidth <= 768) closeSidebar();
+    });
+});
+
 /* ── MODAL (single) ── */
 function confirmDelete(id, name) {
     document.getElementById('modalTaskName').textContent = 'Delete "' + name + '"? This cannot be undone.';
