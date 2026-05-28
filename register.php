@@ -295,32 +295,7 @@ ob_end_flush();
             </div>
         </div>
 
-        <div class="auth-icon">🌿</div>
-        <h1 class="auth-title">New Student</h1>
-        <p class="auth-sub">Sign up to join the Study Room.</p>
-
-        <?php if (!empty($error)): ?>
-            <div class="error-box">⚠ <?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
-
-        <form method="POST">
-            <div class="field-wrap">
-                <label class="field-label" for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Choose a username"
-                       value="<?= isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '' ?>" required>
-            </div>
-            <div class="field-wrap">
-                <label class="field-label" for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Choose a password" required>
-            </div>
-            <button type="submit" name="register" class="submit-btn">Create Account</button>
-        </form>
-
-        <hr class="divider">
-        <p class="link-row">Already studying? <a href="login.php">Log in here</a></p>
-    </div>
-</div>
-
+        
 <script>
     const music = document.getElementById('studyMusic');
     const dot   = document.getElementById('musicDot');

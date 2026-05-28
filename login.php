@@ -255,7 +255,6 @@ if (isset($_POST['login'])) {
                         </div>
                         <button type="submit" name="login" class="btn btn-primary w-100">Open Door</button>
                     </form>
-
                     <p class="text-center mt-4 link-light">
                         New student? <a href="register.php" class="link-light">Register here</a>
                     </p>
@@ -263,28 +262,6 @@ if (isset($_POST['login'])) {
             </div>
         </div>
 
-        <div class="auth-icon">🕯️</div>
-        <h1 class="auth-title">Study Room</h1>
-        <p class="auth-sub">Enter the room to begin your journey.</p>
-
-        <?php if (!empty($error)): ?>
-            <div class="error-box">⚠ <?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
-
-        <form method="POST" action="">
-            <div class="field-wrap">
-                <label class="field-label" for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Your username" required autocomplete="off">
-            </div>
-            <div class="field-wrap">
-                <label class="field-label" for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Your password" required>
-            </div>
-            <button type="submit" name="login" class="submit-btn">Open Door</button>
-        </form>
-
-        <hr class="divider">
-        <p class="link-row">New student? <a href="register.php">Register here</a></p>
     </div>
 </div>
 
